@@ -24,7 +24,7 @@ onMounted(async () => {
         <p>{{ item.title }}</p>
         <p style="color: grey">{{ item.price }}</p>
       </div>
-      <img :src="img1" :alt="title" />
+      <img :src="(item.image_url===null ? img1 : item.image_url)" :alt="title" />
     </div>
   </div>
 </template>

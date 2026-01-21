@@ -8,7 +8,7 @@ import '@fontsource/caprasimo'
   </div>
 
   <div class="image-container">
-    <img class="image" src="@/assets/ku.jpg" />
+    <img class="image" src="@/assets/dresser_original.jpg" />
     <img class="texture" src="@/assets/texture.svg" alt="texture" />
     <div class="sticker-container">
       <img class="sticker" src="@/assets/Sticker.svg" />
@@ -26,13 +26,13 @@ import '@fontsource/caprasimo'
 
   <div class="row">
     <div class="column">
-      <img src="@/assets/ku.jpg" alt="Snow" style="width: 100%" />
+      <img src="@/assets/plant_stands1.jpg" alt="Snow" style="width: 100%" />
     </div>
     <div class="column">
-      <img src="@/assets/ramen.jpeg" alt="Forest" style="width: 100%" />
+      <img src="@/assets/chairs2.jpg" alt="Forest" style="width: 100%" />
     </div>
     <div class="column">
-      <img src="@/assets/chili.JPG" alt="Mountains" style="width: 100%" />
+      <img src="@/assets/shelf.jpg" alt="Mountains" style="width: 100%" />
     </div>
   </div>
 </template>
@@ -70,6 +70,7 @@ import '@fontsource/caprasimo'
   border-radius: 25px;
   object-fit: cover;
   filter: drop-shadow(10px 10px 0px rgba(0, 0, 0, 0.1));
+  object-position: 50% 25%;
 }
 .texture {
   position: absolute;

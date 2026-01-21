@@ -1,50 +1,12 @@
-// // prisma variabled use dto get database information
-// const { PrismaClient } = require('@prisma/client');
-// const prisma = new PrismaClient();
+// file explanation:
+// This is your server entry point.
 
-// // load the express library
-// const express = require('express');
-
-// // create an express application object (the app)
-// const app = express();
-
-// // define the port that the backend will run on (localhost:4000)
-// const port = 4000;
-
-// // load the cors library
-// // the cors library allows the backend port to communicate with the frontend port
-// const cors = require("cors");
-// app.use(cors());
-
-// // allow the backend to accept from data and json
-// app.use(express.urlencoded({ extended: true }));
-// app.use(express.json());
-
-// // add routes
-// // this route corresponds to localhost:4000/
-// app.get('/', cors(), async (req, res) => {
-//     res.send('Hello World!');
-// });
-
-// // this route corresponds to localhost:4000/projects
-// app.get('/projects', async (req, res) => {
-//   try {
-//     // use .findMany() which returns all of the records in the tabled named 'project' in furniture_db database
-//     const projects = await prisma.project.findMany();
-//     // turn all the records (rows) into json
-//     res.json(projects);
-//     // this will return json data of the projects table when you visit localhost:4000/projects
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: 'Failed to fetch projects' });
-//   }
-// });
-
-
-// // start the server
-// app.listen(port, () => {
-//     console.log(`listening at http://localhost:${port}`);
-// })
+// What it does:
+// Starts Express
+// Connects to Postgres
+// Defines all your API routes (/projects)
+// Listens on port 4000
+// Without this file → no backend exists.
 
 const express = require('express');
 const cors = require('cors');
@@ -55,6 +17,28 @@ const port = 4000;
 
 app.use(express.json());
 app.use(cors());
+
+// get files (images) from the 'uploads' folder
+app.use("/uploads", express.static("uploads"));
+// now the app will be able to access uploaded images through this url structure:
+// http://localhost:4000/uploads/image-file-name.jpg
+
+
+// multer configuration for image uploads
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+
+const upload = multer({ storage });
+
+
 
 // Postgres connection
 const client = new Client({
@@ -69,7 +53,7 @@ client.connect();
 
 // ------- API ROUTES -------
 
-// Test route
+// Test route to make sure database is connected and backend is running
 app.get("/", (req, res) => {
     res.send("Backend is running!");
 });
@@ -85,10 +69,19 @@ app.get("/projects", async (req, res) => {
     }
 });
 
-// POST a new product
-app.post("/projects", async (req, res) => {
+// POST a new project
+app.post("/projects", upload.single("image"), async (req, res) => {
     try {
-        const { title, description, image_url, price } = req.body;
+        // the request body contains the text fields
+        // this code is just defining the variables that will be used in the sql query based on returned data from the server request
+        const { title, description, price } = req.body;
+
+        // define the image_url variable that will be used in the sql query
+        // the request file contains uploaded images 
+        const image_url = req.file
+        ? `http://localhost:4000/uploads/${req.file.filename}` // if there's an uploaded file, set image_url variable
+        : null; // if there is no uploaded file, image_url is null
+
         const result = await client.query(`
             INSERT INTO projects (title, description, image_url, price)
             VALUES ($1, $2, $3, $4) 
@@ -103,7 +96,7 @@ app.post("/projects", async (req, res) => {
     }
 })
 
-// DELETE a product
+// DELETE a project
 // express uses :id for url parameters (the semicolon : indicates a variable that could change based on what product you are searching) 
 app.delete("/projects/:id", async (req, res) => {
     try {
@@ -120,6 +113,50 @@ app.delete("/projects/:id", async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 })
+
+// UPDATE a project
+app.patch("/projects/:id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { title, description, image_url, price } = req.body;
+
+        let fields = [];
+        let values = [];
+        let i = 1;
+
+        if (title) {
+            fields.push(`title = $${i++}`);
+            values.push(title);
+        }
+        if (description) {
+            fields.push(`description = $${i++}`);
+            values.push(description);
+        }
+        if (image_url) {
+            fields.push(`image_url = $${i++}`);
+            values.push(image_url);
+        }
+        if (price) {
+            fields.push(`price = $${i++}`);
+            values.push(price);
+        }
+
+        if (fields.length === 0) {
+            return res.status(400).json({ error: "No fields to update" });
+        }
+
+        values.push(id); // last value is the id
+        const query = `UPDATE projects SET ${fields.join(", ")} WHERE id = $${i} RETURNING *`;
+
+        const result = await client.query(query, values);
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
